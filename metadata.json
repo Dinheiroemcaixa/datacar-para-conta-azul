@@ -1,0 +1,5 @@
+{
+  "name": "DataCar para Conta Azul",
+  "description": "Conversor de relatórios financeiros DataCar para importação no Conta Azul",
+  "requestFramePermissions": []
+}
