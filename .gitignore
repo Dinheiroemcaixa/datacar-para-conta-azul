@@ -1,7 +1,19 @@
-node_modules/
-.next/
-coverage/
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+/.next/
+/out/
+
+# testing
+/coverage
+
+# env files
+.env*.local
+
+# vercel
+.vercel
+
+# system files
 .DS_Store
-*.log
-.env*
-!.env.example
+Thumbs.db
