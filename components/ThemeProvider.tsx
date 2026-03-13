@@ -17,19 +17,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Carregar preferência salva ou detectar sistema operacional
-    const initTheme = () => {
-      const savedTheme = localStorage.getItem('theme') as Theme | null;
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      const initialTheme = savedTheme || systemTheme;
-      
-      setTheme(initialTheme);
-      document.documentElement.setAttribute('data-theme', initialTheme);
-      setMounted(true);
-    };
-
-    // Usamos um microtask para evitar o aviso de 'setState' síncrono no efeito
-    // Isso garante que o build no GitHub passe sem erros de recursão de renderização
-    Promise.resolve().then(initTheme);
+    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const initialTheme = savedTheme || systemTheme;
+    
+    setTheme(initialTheme);
+    document.documentElement.setAttribute('data-theme', initialTheme);
+    setMounted(true);
   }, []);
 
   const toggleTheme = () => {
