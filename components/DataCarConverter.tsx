@@ -17,7 +17,8 @@ import {
   Cloud,
   Info,
   Database,
-  Filter
+  Filter,
+  Repeat
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -30,7 +31,9 @@ import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 import Sidebar from './Sidebar';
 
-const STORAGE_KEY = 'datacar_category_map';
+const STORAGE_KEY_PREFIX = 'datacar_map_';
+const STORES_KEY = 'datacar_stores';
+const LAST_STORE_KEY = 'datacar_last_store';
 
 type Step = 'dashboard' | 'import' | 'mapping' | 'training' | 'settings' | 'help';
 
@@ -38,27 +41,62 @@ export default function DataCarConverter() {
   const [step, setStep] = useState<Step>('dashboard');
   const [data, setData] = useState<ProcessedRow[]>([]);
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
+  const [availableStores, setAvailableStores] = useState<string[]>(['Loja Padrão']);
+  const [selectedStore, setSelectedStore] = useState<string>('Loja Padrão');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Load category map from localStorage
+  // Load stores and last selected store
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const savedStores = localStorage.getItem(STORES_KEY);
+    if (savedStores) {
+      try {
+        const parsed = JSON.parse(savedStores);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAvailableStores(parsed);
+        }
+      } catch (e) {
+        console.error('Failed to parse stores', e);
+      }
+    }
+
+    const lastStore = localStorage.getItem(LAST_STORE_KEY);
+    if (lastStore && availableStores.includes(lastStore)) {
+      setSelectedStore(lastStore);
+    }
+  }, []);
+
+  // Load category map for the selected store
+  useEffect(() => {
+    const storageKey = `${STORAGE_KEY_PREFIX}${selectedStore}`;
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         setCategoryMap(JSON.parse(saved));
       } catch (e) {
-        console.error('Failed to parse category map', e);
+        console.error(`Failed to parse category map for ${selectedStore}`, e);
+        setCategoryMap({});
       }
+    } else {
+      setCategoryMap({});
     }
-  }, []);
+    
+    // Save last store
+    localStorage.setItem(LAST_STORE_KEY, selectedStore);
+  }, [selectedStore]);
 
   // Save category map to localStorage
   const saveCategoryMap = (newMap: Record<string, string>) => {
     setCategoryMap(newMap);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newMap));
+    const storageKey = `${STORAGE_KEY_PREFIX}${selectedStore}`;
+    localStorage.setItem(storageKey, JSON.stringify(newMap));
+  };
+
+  const updateStores = (newStores: string[]) => {
+    setAvailableStores(newStores);
+    localStorage.setItem(STORES_KEY, JSON.stringify(newStores));
   };
 
   // Clear messages on step change
@@ -140,10 +178,11 @@ export default function DataCarConverter() {
   };
 
   const clearCategoryMap = () => {
-    if (window.confirm('Tem certeza que deseja limpar toda a base de conhecimento? Esta ação não pode ser desfeita.')) {
+    if (window.confirm(`Tem certeza que deseja limpar toda a base de conhecimento da ${selectedStore}? Esta ação não pode ser desfeita.`)) {
       setCategoryMap({});
-      localStorage.removeItem(STORAGE_KEY);
-      setSuccessMessage('Base de conhecimento limpa com sucesso.');
+      const storageKey = `${STORAGE_KEY_PREFIX}${selectedStore}`;
+      localStorage.removeItem(storageKey);
+      setSuccessMessage(`Base de conhecimento da ${selectedStore} limpa com sucesso.`);
     }
   };
 
@@ -631,6 +670,71 @@ export default function DataCarConverter() {
                 </div>
               </div>
 
+              <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-[#F0F9FF] dark:bg-[#0EA5E910] rounded-lg">
+                    <Repeat className="w-5 h-5 text-[#0EA5E9]" />
+                  </div>
+                  <h3 className="font-bold text-[var(--foreground)]">Gerenciar Lojas</h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input 
+                      id="new-store-name"
+                      type="text"
+                      placeholder="Nome da nova loja..."
+                      className="flex-1 px-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] text-[var(--foreground)]"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val && !availableStores.includes(val)) {
+                            updateStores([...availableStores, val]);
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button 
+                      onClick={() => {
+                        const input = document.getElementById('new-store-name') as HTMLInputElement;
+                        const val = input.value.trim();
+                        if (val && !availableStores.includes(val)) {
+                          updateStores([...availableStores, val]);
+                          input.value = '';
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#0EA5E9] text-white rounded-xl text-sm font-bold hover:bg-[#0284C7] transition-all"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+
+                  <div className="max-h-40 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
+                    {availableStores.map(store => (
+                      <div key={store} className="flex items-center justify-between p-2 bg-[var(--background)] rounded-lg text-sm border border-[var(--border)]">
+                        <span className="font-medium">{store}</span>
+                        {availableStores.length > 1 && (
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`Tem certeza que deseja remover a loja "${store}"? Todos os mapeamentos dela serão perdidos.`)) {
+                                const newStores = availableStores.filter(s => s !== store);
+                                updateStores(newStores);
+                                if (selectedStore === store) setSelectedStore(newStores[0]);
+                                localStorage.removeItem(`${STORAGE_KEY_PREFIX}${store}`);
+                              }
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* General Preferences */}
               <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 space-y-6">
                 <div className="flex items-center gap-3 mb-2">
@@ -709,7 +813,13 @@ export default function DataCarConverter() {
 
   return (
     <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <Sidebar currentStep={step} onStepChange={setStep} />
+      <Sidebar 
+        currentStep={step} 
+        onStepChange={setStep} 
+        selectedStore={selectedStore}
+        onStoreChange={setSelectedStore}
+        availableStores={availableStores}
+      />
       
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}

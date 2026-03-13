@@ -13,9 +13,18 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   currentStep: string;
   onStepChange: (step: any) => void;
+  selectedStore: string;
+  onStoreChange: (store: string) => void;
+  availableStores: string[];
 }
 
-export default function Sidebar({ currentStep, onStepChange }: SidebarProps) {
+export default function Sidebar({ 
+  currentStep, 
+  onStepChange, 
+  selectedStore, 
+  onStoreChange, 
+  availableStores 
+}: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'PRINCIPAL' },
     { id: 'import', label: 'Importar Datalog', icon: CloudUpload, section: 'PRINCIPAL' },
@@ -35,6 +44,22 @@ export default function Sidebar({ currentStep, onStepChange }: SidebarProps) {
           <Repeat className="w-6 h-6 text-white" />
         </div>
         <span className="text-2xl font-bold text-[var(--foreground)]">DataSync</span>
+      </div>
+
+      {/* Store Selector */}
+      <div className="px-6 mb-6">
+        <div className="bg-[var(--background)] p-3 rounded-xl border border-[var(--border)]">
+          <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest block mb-2">Loja Selecionada</label>
+          <select 
+            value={selectedStore}
+            onChange={(e) => onStoreChange(e.target.value)}
+            className="w-full bg-transparent text-sm font-bold text-[var(--foreground)] focus:outline-none cursor-pointer"
+          >
+            {availableStores.map(store => (
+              <option key={store} value={store}>{store}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Navigation */}
