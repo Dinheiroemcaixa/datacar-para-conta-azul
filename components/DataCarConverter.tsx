@@ -50,11 +50,13 @@ export default function DataCarConverter() {
 
   // Load stores and last selected store
   useEffect(() => {
+    let stores = ['Loja Padrão'];
     const savedStores = localStorage.getItem(STORES_KEY);
     if (savedStores) {
       try {
         const parsed = JSON.parse(savedStores);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          stores = parsed;
           setAvailableStores(parsed);
         }
       } catch (e) {
@@ -63,7 +65,7 @@ export default function DataCarConverter() {
     }
 
     const lastStore = localStorage.getItem(LAST_STORE_KEY);
-    if (lastStore && availableStores.includes(lastStore)) {
+    if (lastStore && stores.includes(lastStore)) {
       setSelectedStore(lastStore);
     }
   }, []);
